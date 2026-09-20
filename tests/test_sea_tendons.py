@@ -17,7 +17,7 @@ import quad_model
 
 
 def test_every_sea_tendon_is_pinned_at_center() -> None:
-    m, d = quad_model.build_quad()
+    m, _d = quad_model.build_quad()
     assert m.ntendon == 8, f"ntendon = {m.ntendon} != 8 (the 4x2 SEA rails)"
     for tid in range(m.ntendon):
         k_t = float(m.tendon_stiffness[tid])
