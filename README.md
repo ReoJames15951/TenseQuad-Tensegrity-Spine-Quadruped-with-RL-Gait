@@ -1,7 +1,7 @@
 # SeriesQuad — simulation-first SEA quadruped locomotion stack
 
-[![CI — tests](https://github.com/seriesquad/seriesquad/actions/workflows/tests.yml/badge.svg)](https://github.com/seriesquad/seriesquad/actions/workflows/tests.yml)
-[![CI — lint](https://github.com/seriesquad/seriesquad/actions/workflows/lint.yml/badge.svg)](https://github.com/seriesquad/seriesquad/actions/workflows/lint.yml)
+[![CI — tests](https://github.com/ReoJames15951/TenseQuad-Tensegrity-Spine-Quadruped-with-RL-Gait/actions/workflows/tests.yml/badge.svg)](https://github.com/ReoJames15951/TenseQuad-Tensegrity-Spine-Quadruped-with-RL-Gait/actions/workflows/tests.yml)
+[![CI — lint](https://github.com/ReoJames15951/TenseQuad-Tensegrity-Spine-Quadruped-with-RL-Gait/actions/workflows/tests.yml/badge.svg)](https://github.com/ReoJames15951/TenseQuad-Tensegrity-Spine-Quadruped-with-RL-Gait/actions/workflows/tests.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -80,7 +80,7 @@ seriesquad/
 Requires **Python 3.11+** on Windows / Linux / macOS.
 
 ```bash
-git clone https://github.com/seriesquad/seriesquad.git
+git clone https://github.com/ReoJames15951/TenseQuad-Tensegrity-Spine-Quadruped-with-RL-Gait.git
 cd seriesquad
 
 python -m venv .venv
