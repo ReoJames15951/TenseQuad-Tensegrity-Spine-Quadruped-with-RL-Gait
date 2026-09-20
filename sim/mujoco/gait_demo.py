@@ -41,5 +41,5 @@ for t in (-1.0, -0.5, 0.0, 0.5, 1.0):
     dx = e.data.xpos[e.trunk_id][0] - x0
     mode = f"{dy / 10:+5.1f}deg/s" if abs(dy) > 8 else "straight"
     print(
-        f"turn {t:+4.1f} | 10s {mode} | dx {dx:+.3f} m  yaw {dy:+.1f}deg  z {e.data.xpos[e.trunk_id][2]:.3f}"
+        f"turn {t:+4.1f} | 10s {mode} | dx {dx:+.3f} m  yaw {dy:+.1f}deg  z {e.data.xpos[e.trunk_id][2]:.3f}"  # noqa: E501
     )

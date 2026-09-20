@@ -187,7 +187,7 @@ def mode_bounce(
     z0 = z[0]
 
     print(
-        f"== SEA bounce (k_s={k_s:g} N-m/rad, bend {bend:+.2f} rad, base {model.opt.timestep * 1e3:g} ms) =="
+        f"== SEA bounce (k_s={k_s:g} N-m/rad, bend {bend:+.2f} rad, base {model.opt.timestep * 1e3:g} ms) =="  # noqa: E501
     )
     print(f"  peak spring tension     {abs(spring).max():6.2f} N")
     print(f"  mean link deflection    {np.degrees(abs(j_angles).mean()):6.2f} deg")

@@ -242,7 +242,7 @@ def main():
             ep_len = float(np.mean([m["ep_len"] for m in envs.metrics]))
             envs.metrics.clear()
 
-        line = f"it {it:3d}  R {it_rew[it]:+.3f}  {'' if ep_len is None else f'len {ep_len:5.0f}  vx {ep_vx:+.3f}  z {ep_z:.3f}'}"
+        line = f"it {it:3d}  R {it_rew[it]:+.3f}  {'' if ep_len is None else f'len {ep_len:5.0f}  vx {ep_vx:+.3f}  z {ep_z:.3f}'}"  # noqa: E501
         if (it + 1) % args.eval_every == 0:
             res = evaluate(
                 chk,
@@ -252,7 +252,7 @@ def main():
                 gait_dir=args.gait_dir,
                 stride_min=args.stride_min,
             )
-            line += f"  |  eval vx {res['vx']:+.3f}  z {res['z']:.3f}  pitch {res['pitch_max']:.1f}deg  yaw {res['yaw_drift']:+.1f}deg"
+            line += f"  |  eval vx {res['vx']:+.3f}  z {res['z']:.3f}  pitch {res['pitch_max']:.1f}deg  yaw {res['yaw_drift']:+.1f}deg"  # noqa: E501
         print(line, flush=True)
 
         if (it + 1) % 20 == 0:

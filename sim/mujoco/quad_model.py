@@ -184,7 +184,7 @@ def build_quad(k_s: float = 40.0, d_s: float = 0.3) -> tuple:
             r'<body name="(.*?)" pos="[^"]*"', '<body name="\\1" pos="0 0 0"', hip, count=1
         )
         xml += f'      <body name="{tag}hip_yaw" pos="{pos[0]:+.4f} {pos[1]:+.4f} {pos[2]:+.4f}">\n'
-        xml += f'        <joint name="{tag}yaw" axis="0 0 1" range="-0.8 0.8" damping="0.05" armature="0.002"/>\n'
+        xml += f'        <joint name="{tag}yaw" axis="0 0 1" range="-0.8 0.8" damping="0.05" armature="0.002"/>\n'  # noqa: E501
         xml += '        <inertial pos="0 0 0" mass="0.03" diaginertia="0.0002 0.0002 0.0002"/>\n'
         xml += f'        <geom name="{tag}yaw_geom" type="box" size="0.012 0.011 0.014" '
         xml += f'pos="{0.0:+.4f} {0.0:+.4f} {0.0:+.4f}" mass="0.02" contype="0" conaffinity="0"/>\n'

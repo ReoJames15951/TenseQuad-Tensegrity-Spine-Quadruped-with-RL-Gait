@@ -224,7 +224,7 @@ def mode_walk(
     )
     print(f"  weld loop max     {weld_err.max() * 1e3:.1f} mm")
     print(
-        f"  foot contact rate {' '.join(f'{t}:{c:.0%}' for t, c in zip(LEGS, contact_rate, strict=False))}"
+        f"  foot contact rate {' '.join(f'{t}:{c:.0%}' for t, c in zip(LEGS, contact_rate, strict=False))}"  # noqa: E501
     )
 
 
