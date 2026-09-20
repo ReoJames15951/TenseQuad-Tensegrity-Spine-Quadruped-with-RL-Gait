@@ -86,18 +86,15 @@ def ik(fx: float, fz: float, base: float = BASE, L1: float = L1, L2: float = L2)
         d = float(np.linalg.norm(d_vec))
         if d < 1e-9 or d > L1 + L2 or d < abs(L1 - L2):
             return np.nan, np.nan
-        l = (L1 * L1 - L2 * L2 + d * d) / (2.0 * d)
-        l_clip = max(-L1, min(L1, l))
+        l_leg = (L1 * L1 - L2 * L2 + d * d) / (2.0 * d)
+        l_clip = max(-L1, min(L1, l_leg))
         h_sq = L1 * L1 - l_clip * l_clip
         if h_sq < 0.0:
             return np.nan, np.nan
         h = float(np.sqrt(h_sq))
         u = d_vec / d
         perp = np.array([u[1], -u[0]])
-        if mi is m1:
-            E = mi + l_clip * u + h * perp  # crossed branch
-        else:
-            E = mi + l_clip * u - h * perp  # mirrored crossed branch
+        E = mi + l_clip * u + h * perp if mi is m1 else mi + l_clip * u - h * perp
         results.append(E)
     E1, E2 = results
     th1 = np.arctan2(-(E1[0] - m1[0]), -(E1[1] - m1[1]))
