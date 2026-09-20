@@ -16,8 +16,8 @@ import onnx
 from onnx import TensorProto, helper, numpy_helper
 
 sys.path.insert(0, "." if __file__.startswith(".") else "")
-import ppo  # noqa: E402
-import gait_env  # noqa: E402
+import gait_env
+import ppo
 
 
 def export(checkpoint: str, out: str):
@@ -45,10 +45,10 @@ def export(checkpoint: str, out: str):
 
     # obs standardization: (x - mean) / sqrt(var + 1e-4) -> Sub + Mul
     mean_name = const("obs_mean", agent.obs_mean)
-    var_name = const("obs_var", agent.obs_var + 1e-4)   # already-var + eps
+    const("obs_var", agent.obs_var + 1e-4)   # already-var + eps
     scale = 1.0 / np.sqrt(agent.obs_var + 1e-4)
     scale_name = const("obs_scale", scale)
-    four = const("one", np.float32(1.0))
+    const("one", np.float32(1.0))
 
     # (x - mean) * scale
     sub_node = helper.make_node("Sub", ["obs", mean_name], ["x0"])

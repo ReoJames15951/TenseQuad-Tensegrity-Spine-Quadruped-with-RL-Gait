@@ -219,7 +219,7 @@ def mode_walk(T: float, render: bool, gait: str = "trot", freq: float = GAIT_FRE
     print(f"  spring defl rms   {np.mean(spring_rms):.2f} deg  (per-leg per-motor: "
           f"{' '.join(f'{v:.1f}' for v in spring_rms)})")
     print(f"  weld loop max     {weld_err.max()*1e3:.1f} mm")
-    print(f"  foot contact rate {' '.join(f'{t}:{c:.0%}' for t,c in zip(LEGS, contact_rate))}")
+    print(f"  foot contact rate {' '.join(f'{t}:{c:.0%}' for t,c in zip(LEGS, contact_rate, strict=False))}")
 
 
 def main():

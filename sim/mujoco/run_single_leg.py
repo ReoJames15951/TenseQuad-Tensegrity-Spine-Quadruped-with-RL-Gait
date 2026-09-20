@@ -131,7 +131,7 @@ def mode_bounce(T: float, k_s: float, d_s: float, render: bool, drop: float, ben
 
     viewer = mujoco.viewer.launch_passive(model, data) if render else None
 
-    t = np.arange(n) * dt
+    np.arange(n) * dt
     base_z = np.empty(n)
     spring = np.empty(n)
     j_angles = np.empty((n, 2))

@@ -39,7 +39,7 @@ def evaluate(agent, n_envs=3, T=8.0, seed=99, render=False,
                                 gait_dir=gait_dir, stride_min=stride_min,
                                 heading_cmd=heading_cmd, turn=turn)
     obs = envs.reset()
-    dist_x = np.zeros(n_envs)
+    np.zeros(n_envs)
     speeds, zs, pitches = [], [], []
     yaw_start = np.array([np.degrees(gait_env._euler_from_quat(
         e.data.sensor("trunk_quat").data)[2]) for e in envs.envs])
@@ -50,12 +50,12 @@ def evaluate(agent, n_envs=3, T=8.0, seed=99, render=False,
         viewer = mujoco.viewer.launch_passive(envs.envs[0].model, envs.envs[0].data)
     for _ in range(steps):
         a = agent.act_eval(obs)
-        obs, rew, term, trunc = envs.step(a)
+        obs, _rew, _term, _trunc = envs.step(a)
         vx = np.array([(e.data.xpos[e.trunk_id][0] - e._xprev) /
                        (e.dt * gait_env.N_SUB) for e in envs.envs])
         z = np.array([e.data.xpos[e.trunk_id][2] for e in envs.envs])
         for e in envs.envs:
-            r, p, _ = rq._euler_from_quat(e.data.sensor("trunk_quat").data)
+            _r, p, _ = rq._euler_from_quat(e.data.sensor("trunk_quat").data)
             pitches.append(abs(p))
         speeds.append(vx)
         zs.append(z)
@@ -67,14 +67,14 @@ def evaluate(agent, n_envs=3, T=8.0, seed=99, render=False,
     final_x = np.array([e.data.xpos[e.trunk_id][0] for e in envs.envs])
     yaw_drift = np.array([np.degrees(gait_env._euler_from_quat(
         e.data.sensor("trunk_quat").data)[2]) for e in envs.envs]) - yaw_start
-    return dict(
-        vx=float(speeds.mean()),
-        z=float(zs.mean()),
-        z_min=float(zs.min()),
-        pitch_max=float(np.degrees(np.max(pitches))),
-        dist=float(final_x.mean()),
-        yaw_drift=float(yaw_drift.mean()),
-    )
+    return {
+        "vx": float(speeds.mean()),
+        "z": float(zs.mean()),
+        "z_min": float(zs.min()),
+        "pitch_max": float(np.degrees(np.max(pitches))),
+        "dist": float(final_x.mean()),
+        "yaw_drift": float(yaw_drift.mean()),
+    }
 
 
 def main():

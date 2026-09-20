@@ -1,5 +1,7 @@
 import numpy as np
-import gait_env, ppo
+
+import gait_env
+import ppo
 
 npz = np.load("quad_ppo.npz")
 chk = ppo.Agent(gait_env.OBS_DIM, 8, seed=0)
@@ -19,7 +21,7 @@ for t in (-1.0, -0.5, 0.0, 0.5, 1.0):
     x0 = e.data.xpos[e.trunk_id][0]
     q0 = e.data.sensor("trunk_quat").data
     n = int(10.0 / 0.02)
-    for i in range(n):
+    for _i in range(n):
         obs, _, _, _ = v.step(chk.act_eval(obs))
     q = e.data.sensor("trunk_quat").data
     yaw = np.degrees(np.arctan2(2 * (q[3]*q[0] + q[1]*q[2]),

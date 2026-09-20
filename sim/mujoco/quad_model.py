@@ -154,7 +154,7 @@ def build_quad(k_s: float = 40.0, d_s: float = 0.3) -> tuple:
     Iyy = (1.0/12.0) * trunk_mass * (dx*dx + dz*dz)
     Izz = (1.0/12.0) * trunk_mass * (dx*dx + dy*dy)
 
-    xml = f'<mujoco model="quad">\n'
+    xml = '<mujoco model="quad">\n'
     xml += '  <compiler angle="radian" autolimits="false"/>\n'
     xml += '  <option timestep="0.002" iterations="40" tolerance="1e-10"\n'
     xml += '          cone="elliptic" integrator="Euler" gravity="0 0 -9.81"/>\n'
@@ -167,7 +167,7 @@ def build_quad(k_s: float = 40.0, d_s: float = 0.3) -> tuple:
     xml += '  <worldbody>\n'
     xml += '    <geom name="floor" type="plane" size="4 4 1" pos="0 0 0" condim="3"/>\n'
     xml += '    <body name="trunk" pos="0 0 0.226">\n'
-    xml += f'      <freejoint name="root"/>\n'
+    xml += '      <freejoint name="root"/>\n'
     xml += f'      <inertial pos="0 0 0" mass="{trunk_mass}" '
     xml += f'diaginertia="{Ixx:.6f} {Iyy:.6f} {Izz:.6f}"/>\n'
     xml += '      <geom name="trunk_geom" type="box" size="0.12 0.085 0.03" '
@@ -184,11 +184,11 @@ def build_quad(k_s: float = 40.0, d_s: float = 0.3) -> tuple:
                      hip, count=1)
         xml += f'      <body name="{tag}hip_yaw" pos="{pos[0]:+.4f} {pos[1]:+.4f} {pos[2]:+.4f}">\n'
         xml += f'        <joint name="{tag}yaw" axis="0 0 1" range="-0.8 0.8" damping="0.05" armature="0.002"/>\n'
-        xml += f'        <inertial pos="0 0 0" mass="0.03" diaginertia="0.0002 0.0002 0.0002"/>\n'
+        xml += '        <inertial pos="0 0 0" mass="0.03" diaginertia="0.0002 0.0002 0.0002"/>\n'
         xml += f'        <geom name="{tag}yaw_geom" type="box" size="0.012 0.011 0.014" '
         xml += f'pos="{0.0:+.4f} {0.0:+.4f} {0.0:+.4f}" mass="0.02" contype="0" conaffinity="0"/>\n'
         xml += hip + "\n"
-        xml += f'      </body>\n'
+        xml += '      </body>\n'
 
     xml += '    </body>\n'   # close trunk
     xml += '  </worldbody>\n'

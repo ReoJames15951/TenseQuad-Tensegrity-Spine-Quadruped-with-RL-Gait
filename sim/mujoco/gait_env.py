@@ -22,11 +22,10 @@ action and observation noise, small initial drop/tilt/jitter.
 from __future__ import annotations
 
 import json
-
-import numpy as np
+import pathlib
 
 import mujoco
-import pathlib
+import numpy as np
 
 import leg_utils as leg
 import quad_model
@@ -169,22 +168,22 @@ class QuadGaitEnv:
     def _draw_dr(self):
         rng = self._rng
         if not self._dr_on:
-            return dict(mu_gain=1.0, k_s=1.0, d_s=1.0, friction=1.0, mass=1.0,
-                        delay=0, act_noise=0.0, obs_noise=0.0, drop=0.0,
-                        tilt=np.zeros(2), jitter=np.zeros(8))
-        return dict(
-            mu_gain=rng.uniform(0.9, 1.1),          # motor gain
-            k_s=rng.uniform(0.8, 1.2),              # spring stiffness scale
-            d_s=rng.uniform(0.2, 0.45),             # spring damping scale
-            friction=rng.uniform(0.5, 1.3),         # floor friction
-            mass=rng.uniform(0.9, 1.1),             # trunk mass scale
-            delay=int(rng.integers(0, 3)),          # control delay (policy steps)
-            act_noise=rng.uniform(0.0, 0.04),       # action noise
-            obs_noise=rng.uniform(0.0, 0.02),       # obs noise (std, normalized)
-            drop=rng.uniform(0.0, 0.03),            # extra initial height
-            tilt=rng.uniform(-0.05, 0.05, size=2),  # init roll/pitch
-            jitter=rng.uniform(-0.01, 0.01, size=8),
-        )
+            return {"mu_gain": 1.0, "k_s": 1.0, "d_s": 1.0, "friction": 1.0, "mass": 1.0,
+                        "delay": 0, "act_noise": 0.0, "obs_noise": 0.0, "drop": 0.0,
+                        "tilt": np.zeros(2), "jitter": np.zeros(8)}
+        return {
+            "mu_gain": rng.uniform(0.9, 1.1),          # motor gain
+            "k_s": rng.uniform(0.8, 1.2),              # spring stiffness scale
+            "d_s": rng.uniform(0.2, 0.45),             # spring damping scale
+            "friction": rng.uniform(0.5, 1.3),         # floor friction
+            "mass": rng.uniform(0.9, 1.1),             # trunk mass scale
+            "delay": int(rng.integers(0, 3)),          # control delay (policy steps)
+            "act_noise": rng.uniform(0.0, 0.04),       # action noise
+            "obs_noise": rng.uniform(0.0, 0.02),       # obs noise (std, normalized)
+            "drop": rng.uniform(0.0, 0.03),            # extra initial height
+            "tilt": rng.uniform(-0.05, 0.05, size=2),  # init roll/pitch
+            "jitter": rng.uniform(-0.01, 0.01, size=8),
+        }
 
     # SEA (kappa_s, d_s) DR center: measured bench pair (sec. 11 A1/B1 rows) via
     # sea_center.json, CAD 40.0/0.3 fallback. Never re-seed DR with CAD numbers.
@@ -198,7 +197,7 @@ class QuadGaitEnv:
         try:
             j = json.loads(p.read_text(encoding="utf-8"))
             k, d = float(j["k_s"]), float(j["d_s"])
-            if not (0 < k and 0 < d):
+            if not (k > 0 and d > 0):
                 raise ValueError("sea_center.json needs positive k_s, d_s")
         except (OSError, KeyError, ValueError):
             k, d = 40.0, 0.3              # CAD fallback
@@ -206,7 +205,7 @@ class QuadGaitEnv:
         return cls._SEA_CENTER
 
     def _apply_dr(self):
-        m, d = self.model, self.data
+        m, _d = self.model, self.data
         k = self._dr
         k_c, d_c = self._sea_center()                 # measured SEA pair (sec. 11)
         m.geom_friction[self.floor_id, 0] = k["friction"]
@@ -227,7 +226,7 @@ class QuadGaitEnv:
         cy, sy = np.cos(self._yaw0/2), np.sin(self._yaw0/2)
         # q_tilt = (cp*cr, -sp*sr, sp*cr, cp*sr) in (w,x,y,z)
         w1, x1, y1, z1 = cp*cr, -sp*sr, sp*cr, cp*sr
-        w2, x2, y2, z2 = cy, 0.0, 0.0, sy
+        w2, _x2, y2, _z2 = cy, 0.0, 0.0, sy
         qw = w2*w1 - y2*y1                             # z-axis only: x=z=0 parts
         qx = w2*x1 + y2*z1
         qy = w2*y1 - y2*x1
@@ -236,7 +235,7 @@ class QuadGaitEnv:
         d.qpos[3:7] = (qw, qx, qy, qz)
         for i, t in enumerate(LEGS):
             for joint in ("r1", "r2"):
-                d.qpos[int(m.jnt(f"{t}{joint}").qposadr[0])] = self._dr.get("jitter", np.zeros(8))[i*2+("r2" == joint)]
+                d.qpos[int(m.jnt(f"{t}{joint}").qposadr[0])] = self._dr.get("jitter", np.zeros(8))[i*2+(joint == "r2")]
         mujoco.mj_forward(m, d)
         self._steps = 0
         self._u_prev = np.zeros(8)
@@ -392,7 +391,7 @@ class QuadGaitEnv:
         r_du = -0.02 * np.mean(np.abs(action - self._u_prev))
         reward = r_vx + r_yaw + r_att + r_w + r_h + r_u + r_du
         self._u_prev = action.copy()
-        self._u_hist = self._u_hist[1:] + [action.copy()]
+        self._u_hist = [*self._u_hist[1:], action.copy()]
 
         terminated = (z < TERM_Z_LO or z > TERM_Z_HI or abs(roll) > TERM_TILT
                       or abs(pitch) > TERM_TILT or not np.isfinite(reward))

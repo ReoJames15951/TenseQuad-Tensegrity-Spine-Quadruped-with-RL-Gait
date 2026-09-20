@@ -10,7 +10,7 @@ the ONNX export is what ships to embedded, and any drift here means the
 
 from __future__ import annotations
 
-import run_onnx  # noqa: E402  (sim/mujoco on path via tests/conftest.py)
+import run_onnx
 
 
 def test_onnx_export_reproduces_numpy_policy_bit_exact() -> None:
