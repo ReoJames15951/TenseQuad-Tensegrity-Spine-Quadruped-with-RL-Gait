@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+build/
+dist/
+.venv/
+venv/
+env/
+.eggs/
+
+# Environments / secrets
+.env
+.env.*
+!.env.example
+
+# Trained-policy SCRUB (not part of the verified regression set).
+# The canonical bit-exact pair (quad_ppo.npz/.onnx) IS committed on purpose:
+# smol (~170 KB total) and required for the run_onnx.py regression gate to
+# reproduce out-of-the-box.  Everything else that training produces (drift
+# variants, intermediate .npz/.onnx, obs norm stats) must be regenerated.
+sim/mujoco/*.npz
+sim/mujoco/*.onnx
+!sim/mujoco/quad_ppo.npz
+!sim/mujoco/quad_ppo.onnx
+*.onnx.raw
+
+# Bench-measured data — W15 bring-up telemetry, never committed
+sea_center.json
+sim/mujoco/sea_center.json
+
+# Renders / media
+out/
+*.mp4
+*.png
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db

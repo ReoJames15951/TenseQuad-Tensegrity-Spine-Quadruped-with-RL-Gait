@@ -1,0 +1,31 @@
+﻿name: Bug report
+description: Report an incorrect behavior — the fix should reproduce it first.
+title: "[bug] "
+labels: [bug]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which bring-up stage?
+      options:
+        - sizing / workspace (leg_utils)
+        - policy (train/export/verify)
+        - ONNX bit-exactness (run_onnx / embedded)
+        - hardware bring-up (W15 card)
+        - docs / packaging
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Exact commands and, if the bug broke bit-exactness, the values of dx/dy/z from `python run_onnx.py`.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true

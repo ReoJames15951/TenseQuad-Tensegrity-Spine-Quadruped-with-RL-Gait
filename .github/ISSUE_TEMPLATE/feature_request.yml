@@ -1,0 +1,18 @@
+﻿name: Feature request
+description: Propose a change. Bench/SEA numbers must come from the actual W15.
+title: "[feat] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / gap
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How will the grader know this is done and honest?
+    validations:
+      required: true

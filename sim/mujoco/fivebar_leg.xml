@@ -1,0 +1,122 @@
+<mujoco model="fivebar_leg">
+  <compiler angle="radian" autolimits="false"/>
+
+  <option timestep="0.002" iterations="40" tolerance="1e-10"
+          cone="elliptic" integrator="Euler" gravity="0 0 -9.81"/>
+
+  <default>
+    <geom type="box" condim="3"/>
+    <joint limited="true" damping="0.02"/>
+    <motor ctrlrange="-30 30" ctrllimited="true" forcerange="-30 30" forcelimited="true"/>
+  </default>
+
+  <worldbody>
+    <geom name="floor" type="plane" size="2 2 1" pos="0 0 0" condim="3"/>
+
+    <!-- base: shares one leg's worth of torso (approx half body on one leg) -->
+    <body name="base" pos="0 0 0.226">
+      <freejoint name="root"/>
+      <inertial pos="0 0 -0.02" mass="1.35" diaginertia="0.02 0.02 0.02"/>
+      <geom name="base_geom" type="box" size="0.05 0.03 0.03" pos="0 0 -0.02" contype="0" conaffinity="0"/>
+      <site name="s_base" pos="0 0 -0.02"/>
+
+      <!-- hip: motor stators + frame for one leg -->
+      <body name="hip" pos="0 0 -0.02">
+        <inertial pos="0 0 0" mass="0.15" diaginertia="0.0002 0.0002 0.0002"/>
+        <geom name="hip_geom" type="cylinder" size="0.024 0.018" pos="0 0 0" zaxis="0 1 0" contype="0" conaffinity="0"/>
+
+        <!-- mount 1 (x = -a/2). rotor + spring-loaded input link, coaxial about y -->
+        <body name="rot1" pos="-0.03 0 0">
+          <joint name="r1" axis="0 1 0" range="-1.2 1.2" armature="0.003"/>
+          <geom name="rot1_geom" type="cylinder" size="0.014 0.01" pos="0 0 0" zaxis="0 1 0" mass="0.03" contype="0" conaffinity="0"/>
+        </body>
+        <body name="lka" pos="-0.03 0 0">
+          <joint name="j1" axis="0 1 0" range="-1.2 1.2" damping="0.05"/>
+          <geom name="lka_geom" type="box" size="0.013 0.011 0.045" pos="0 0 -0.045" mass="0.045" contype="0" conaffinity="0"/>
+          <body name="endA" pos="0 0 -0.09">
+            <geom name="endA_geom" type="sphere" size="0.008" mass="0.004" contype="0" conaffinity="0"/>
+            <body name="C1" pos="0 0 0" euler="0 -0.2761 0">
+              <joint name="jc1" axis="0 1 0" range="-1.12 0.9" damping="0.005" armature="0.0002"/>
+              <geom name="C1_geom" type="box" size="0.011 0.009 0.055" pos="0 0 -0.055" mass="0.035" contype="0" conaffinity="0"/>
+              <body name="tipC1" pos="0 0 -0.11">
+                <geom name="foot_pad" type="sphere" size="0.014" mass="0.02" friction="1.2 0.02 0.0001" condim="3"/>
+                <!-- ratchet cleat: thin tilted box on the -x side of the pad,
+                     its lower corner digs ~4 mm below the pad.  It catches a
+                     backward (-x) slide of the foot and rides over a forward
+                     (+x) one, making the pad's grip directional like a toothed
+                     foot. -->
+                <geom name="pad_cleat" type="box" size="0.004 0.018 0.008" pos="0.016 0 -0.010"
+                      euler="0 0.5 0" mass="0.008" friction="1.2 0.02 0.0001" condim="3"/>
+                <site name="s_foot" pos="0 0 0"/>
+              </body>
+            </body>
+          </body>
+        </body>
+
+        <!-- mount 2 (x = +a/2), mirrored -->
+        <body name="rot2" pos="0.03 0 0">
+          <joint name="r2" axis="0 1 0" range="-1.2 1.2" armature="0.003"/>
+          <geom name="rot2_geom" type="cylinder" size="0.014 0.01" pos="0 0 0" zaxis="0 1 0" mass="0.03" contype="0" conaffinity="0"/>
+        </body>
+        <body name="lkb" pos="0.03 0 0">
+          <joint name="j2" axis="0 1 0" range="-1.2 1.2" damping="0.05"/>
+          <geom name="lkb_geom" type="box" size="0.013 0.011 0.045" pos="0 0 -0.045" mass="0.045" contype="0" conaffinity="0"/>
+          <body name="endB" pos="0 0 -0.09">
+            <geom name="endB_geom" type="sphere" size="0.008" mass="0.004" contype="0" conaffinity="0"/>
+            <body name="C2" pos="0 0 0" euler="0 0.2761 0">
+              <joint name="jc2" axis="0 1 0" range="-0.58 1.4" damping="0.005" armature="0.0002"/>
+              <geom name="C2_geom" type="box" size="0.011 0.009 0.055" pos="0 0 -0.055" mass="0.035" contype="0" conaffinity="0"/>
+              <body name="tipC2" pos="0 0 -0.11">
+                <geom name="tipC2_geom" type="sphere" size="0.006" mass="0.003" contype="0" conaffinity="0"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- series-elastic element per input: fixed tendon couples rotor joint (q_r) and
+       link joint (q_j); tension = k*(q_r - q_j), torque pair equal-and-opposite -->
+  <tendon>
+    <fixed name="spring1" stiffness="40" damping="0.3">
+      <joint joint="r1" coef="1"/>
+      <joint joint="j1" coef="-1"/>
+    </fixed>
+    <fixed name="spring2" stiffness="40" damping="0.3">
+      <joint joint="r2" coef="1"/>
+      <joint joint="j2" coef="-1"/>
+    </fixed>
+  </tendon>
+
+  <actuator>
+    <motor name="m1" joint="r1"/>
+    <motor name="m2" joint="r2"/>
+  </actuator>
+
+  <sensor>
+    <jointpos name="sp_r1" joint="r1"/>
+    <jointpos name="sp_j1" joint="j1"/>
+    <jointpos name="sp_r2" joint="r2"/>
+    <jointpos name="sp_j2" joint="j2"/>
+    <jointpos name="sp_jc1" joint="jc1"/>
+    <jointpos name="sp_jc2" joint="jc2"/>
+    <jointvel name="sv_r1" joint="r1"/>
+    <jointvel name="sv_j1" joint="j1"/>
+    <jointvel name="sv_r2" joint="r2"/>
+    <jointvel name="sv_j2" joint="j2"/>
+    <framepos name="foot_pos" objtype="site" objname="s_foot"/>
+    <framequat name="base_quat" objtype="body" objname="base"/>
+    <framelinvel name="base_lvel" objtype="body" objname="base"/>
+    <framelinacc name="base_lacc" objtype="body" objname="base"/>
+    <gyro name="gyro" site="s_base"/>
+    <accelerometer name="acc" site="s_base"/>
+    <actuatorfrc name="am1" actuator="m1"/>
+    <actuatorfrc name="am2" actuator="m2"/>
+  </sensor>
+
+  <!-- close the five-bar loop: keep both coupler tips coincident at the foot -->
+  <equality>
+    <weld body1="tipC1" body2="tipC2" solref="0.001 1" solimp="0.9 0.95 0.001"/>
+  </equality>
+</mujoco>
