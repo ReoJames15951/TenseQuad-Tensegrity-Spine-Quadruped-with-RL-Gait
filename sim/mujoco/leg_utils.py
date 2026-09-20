@@ -11,14 +11,13 @@ import numpy as np
 
 # Provisional target geometry (must match fivebar_leg.xml).
 BASE = 0.060  # hip mount separation (m), "ground link" of the five-bar
-L1 = 0.090    # proximal input link (m)
-L2 = 0.110    # coupler link (m)
-LIM_R = 1.2   # rad, rotor / spring-loaded link joint limits
-LIM_C = 1.6   # rad, coupler elbow joint limits
+L1 = 0.090  # proximal input link (m)
+L2 = 0.110  # coupler link (m)
+LIM_R = 1.2  # rad, rotor / spring-loaded link joint limits
+LIM_C = 1.6  # rad, coupler elbow joint limits
 
 
-def fk(theta1: float, theta2: float, base: float = BASE,
-       L1: float = L1, L2: float = L2):
+def fk(theta1: float, theta2: float, base: float = BASE, L1: float = L1, L2: float = L2):
     """Forward kinematics of the crossed five-bar.
 
     Returns (E1, E2, F): proximal-link tips and the foot point as (x, z)
@@ -32,7 +31,7 @@ def fk(theta1: float, theta2: float, base: float = BASE,
     if d <= 1e-9 or d > 2 * L2:  # collapsed elbow or stretch singularity
         return E1, E2, None
     mid = (E1 + E2) / 2.0
-    h = float(np.sqrt(max(0.0, L2 ** 2 - (d / 2.0) ** 2)))
+    h = float(np.sqrt(max(0.0, L2**2 - (d / 2.0) ** 2)))
     n = np.array([E2[1] - E1[1], -(E2[0] - E1[0])]) / d
     f_up = mid + h * n
     f_dn = mid - h * n
@@ -70,8 +69,7 @@ def fk_full(theta1: float, theta2: float, **kw) -> tuple:
     return E1, E2, F, jc1, jc2
 
 
-def ik(fx: float, fz: float, base: float = BASE,
-       L1: float = L1, L2: float = L2):
+def ik(fx: float, fz: float, base: float = BASE, L1: float = L1, L2: float = L2):
     """Inverse kinematics for the crossed five-bar.
 
     Given a desired foot position (fx, fz) in the hip mount frame
@@ -81,25 +79,25 @@ def ik(fx: float, fz: float, base: float = BASE,
     a2 = base / 2.0
     m1 = np.array([-a2, 0.0])
     m2 = np.array([a2, 0.0])
-    f  = np.array([fx, fz])
+    f = np.array([fx, fz])
     results = []
     for mi in (m1, m2):
         d_vec = f - mi
         d = float(np.linalg.norm(d_vec))
         if d < 1e-9 or d > L1 + L2 or d < abs(L1 - L2):
             return np.nan, np.nan
-        l = (L1*L1 - L2*L2 + d*d) / (2.0 * d)
+        l = (L1 * L1 - L2 * L2 + d * d) / (2.0 * d)
         l_clip = max(-L1, min(L1, l))
-        h_sq = L1*L1 - l_clip*l_clip
+        h_sq = L1 * L1 - l_clip * l_clip
         if h_sq < 0.0:
             return np.nan, np.nan
         h = float(np.sqrt(h_sq))
         u = d_vec / d
         perp = np.array([u[1], -u[0]])
         if mi is m1:
-            E = mi + l_clip * u + h * perp      # crossed branch
+            E = mi + l_clip * u + h * perp  # crossed branch
         else:
-            E = mi + l_clip * u - h * perp      # mirrored crossed branch
+            E = mi + l_clip * u - h * perp  # mirrored crossed branch
         results.append(E)
     E1, E2 = results
     th1 = np.arctan2(-(E1[0] - m1[0]), -(E1[1] - m1[1]))
@@ -125,12 +123,12 @@ def workspace_metrics(n: int = 61, **kw) -> dict:
     """Bounding box and singularity margin metrics for the reachable set."""
     F, sing, _ = workspace_scan(n, **kw)
     valid = F[~np.isnan(F[:, :, 0])]
-    d = -valid[:, 1]                      # depths
+    d = -valid[:, 1]  # depths
     stretch = 2 * kw.get("L2", L2)
     return {
         "n_valid": valid.shape[0],
         "n_singular": int(sing.sum()),
-        "reach_max": float(valid[:, 1].max() if valid.size else np.nan),   # hip z offset
+        "reach_max": float(valid[:, 1].max() if valid.size else np.nan),  # hip z offset
         "x_min": float(valid[:, 0].min()),
         "x_max": float(valid[:, 0].max()),
         "z_min": float(valid[:, 1].min()),

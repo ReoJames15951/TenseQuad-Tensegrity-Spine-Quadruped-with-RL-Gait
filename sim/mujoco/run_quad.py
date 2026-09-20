@@ -31,10 +31,10 @@ TROT_PHASE = {"FL": 0.0, "FR": 0.5, "RL": 0.5, "RR": 0.0}
 CRAWL_PHASE = {"FL": 0.0, "FR": 0.25, "RL": 0.5, "RR": 0.75}
 
 # Gait parameters
-STANCE_DEPTH = 0.188   # hip-frame z (down) of foot at nominal stance (m)
-STRIDE       = 0.08    # total stance sweep (m)
-STEP_HEIGHT  = 0.03    # foot lift above stance during swing (m)
-GAIT_FREQ    = 1.5     # steps per second per leg
+STANCE_DEPTH = 0.188  # hip-frame z (down) of foot at nominal stance (m)
+STRIDE = 0.08  # total stance sweep (m)
+STEP_HEIGHT = 0.03  # foot lift above stance during swing (m)
+GAIT_FREQ = 1.5  # steps per second per leg
 
 
 def _foot_target(phase: float, t: float, freq: float = GAIT_FREQ, duty: float = 0.5):
@@ -42,7 +42,7 @@ def _foot_target(phase: float, t: float, freq: float = GAIT_FREQ, duty: float = 
 
     duty = fraction of the gait period spent in stance (3-4 feet on ground).
     """
-    phi = (phase + freq * t) % 1.0   # normalized phase [0, 1)
+    phi = (phase + freq * t) % 1.0  # normalized phase [0, 1)
     if phi < duty:  # stance: foot sweeps backward at ground level
         sweep = phi / duty
         x = STRIDE / 2 * (1 - 2 * sweep)
@@ -96,8 +96,14 @@ def _euler_from_quat(q):
     return roll, pitch, yaw
 
 
-def mode_walk(T: float, render: bool, gait: str = "trot", freq: float = GAIT_FREQ,
-              duty: float = 0.5, stable: bool = True):
+def mode_walk(
+    T: float,
+    render: bool,
+    gait: str = "trot",
+    freq: float = GAIT_FREQ,
+    duty: float = 0.5,
+    stable: bool = True,
+):
     """Open-loop gait with rotor PD tracking IK targets.
 
     With ``stable=True`` a simple stance-adjustment loop (attitude + height)
@@ -109,21 +115,18 @@ def mode_walk(T: float, render: bool, gait: str = "trot", freq: float = GAIT_FRE
     n = int(T / dt)
     phase_map = TROT_PHASE if gait == "trot" else CRAWL_PHASE
 
-    Kph, Krh = 0.05, 0.05   # pitch/roll feedback gain (m depth per rad lean)
-    Kh = 0.4                # height-hold gain (m depth per m height error)
-    z_ref = 0.212           # target trunk height (just above spring sag)
+    Kph, Krh = 0.05, 0.05  # pitch/roll feedback gain (m depth per rad lean)
+    Kh = 0.4  # height-hold gain (m depth per m height error)
+    z_ref = 0.212  # target trunk height (just above spring sag)
 
     # build per-leg actuator and joint maps
     act = {}
-    jr = {}   # rotor qposadr
-    jj = {}   # link qposadr
+    jr = {}  # rotor qposadr
+    jj = {}  # link qposadr
     for t in LEGS:
-        act[t] = (int(model.actuator(f"{t}m1").id),
-                   int(model.actuator(f"{t}m2").id))
-        jr[t] = (int(model.jnt(f"{t}r1").qposadr[0]),
-                  int(model.jnt(f"{t}r2").qposadr[0]))
-        jj[t] = (int(model.jnt(f"{t}j1").qposadr[0]),
-                  int(model.jnt(f"{t}j2").qposadr[0]))
+        act[t] = (int(model.actuator(f"{t}m1").id), int(model.actuator(f"{t}m2").id))
+        jr[t] = (int(model.jnt(f"{t}r1").qposadr[0]), int(model.jnt(f"{t}r2").qposadr[0]))
+        jj[t] = (int(model.jnt(f"{t}j1").qposadr[0]), int(model.jnt(f"{t}j2").qposadr[0]))
 
     trunk_id = model.body("trunk").id
     Kp, Kd = 300.0, 25.0
@@ -155,9 +158,9 @@ def mode_walk(T: float, render: bool, gait: str = "trot", freq: float = GAIT_FRE
                 # roll/pitch/height stance adjustment
                 dz = Kh * z_err
                 if tag in ("FL", "FR"):
-                    dz -= Kph * pitch          # nose-up: retract front
+                    dz -= Kph * pitch  # nose-up: retract front
                 else:
-                    dz += Kph * pitch          #          extend rear
+                    dz += Kph * pitch  #          extend rear
                 if tag in ("FL", "RL"):
                     dz -= Krh * roll
                 else:
@@ -179,8 +182,8 @@ def mode_walk(T: float, render: bool, gait: str = "trot", freq: float = GAIT_FRE
             # spring deflection
             qj1 = data.sensor(f"{tag}sp_j1").data[0]
             qj2 = data.sensor(f"{tag}sp_j2").data[0]
-            spring_defl[i, li*2] = qr1 - qj1
-            spring_defl[i, li*2+1] = qr2 - qj2
+            spring_defl[i, li * 2] = qr1 - qj1
+            spring_defl[i, li * 2 + 1] = qr2 - qj2
 
         mujoco.mj_step(model, data)
 
@@ -188,8 +191,7 @@ def mode_walk(T: float, render: bool, gait: str = "trot", freq: float = GAIT_FRE
         trunk_x[i] = data.xpos[trunk_id][0]
         _, trunk_pitch[i], _ = _euler_from_quat(data.sensor("trunk_quat").data)
         weld_err[i] = max(
-            np.linalg.norm(data.xpos[tip_ids[j]] - data.xpos[tip_ids2[j]])
-            for j in range(4)
+            np.linalg.norm(data.xpos[tip_ids[j]] - data.xpos[tip_ids2[j]]) for j in range(4)
         )
         for j, pad_id in enumerate(pad_ids):
             foot_contacts[i, j] = any(
@@ -216,15 +218,20 @@ def mode_walk(T: float, render: bool, gait: str = "trot", freq: float = GAIT_FRE
     print(f"  trunk height      {trunk_z.mean():.4f} m  (start {z0:.4f}, end {z_final:.4f})")
     print(f"  x displacement    {x_final:+.3f} m  (range {x_min:.3f} to {trunk_x.max():.3f})")
     print(f"  pitch max         {pitch_max:.2f} deg   rms {pitch_rms:.2f} deg")
-    print(f"  spring defl rms   {np.mean(spring_rms):.2f} deg  (per-leg per-motor: "
-          f"{' '.join(f'{v:.1f}' for v in spring_rms)})")
-    print(f"  weld loop max     {weld_err.max()*1e3:.1f} mm")
-    print(f"  foot contact rate {' '.join(f'{t}:{c:.0%}' for t,c in zip(LEGS, contact_rate, strict=False))}")
+    print(
+        f"  spring defl rms   {np.mean(spring_rms):.2f} deg  (per-leg per-motor: "
+        f"{' '.join(f'{v:.1f}' for v in spring_rms)})"
+    )
+    print(f"  weld loop max     {weld_err.max() * 1e3:.1f} mm")
+    print(
+        f"  foot contact rate {' '.join(f'{t}:{c:.0%}' for t, c in zip(LEGS, contact_rate, strict=False))}"
+    )
 
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("--mode", choices=["static", "walk"], default="static")
     p.add_argument("--T", type=float, default=3.0, help="duration (s)")
     p.add_argument("--gait", choices=["trot", "crawl"], default="crawl")

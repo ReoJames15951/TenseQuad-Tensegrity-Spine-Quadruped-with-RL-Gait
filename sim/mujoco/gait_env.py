@@ -30,15 +30,15 @@ import numpy as np
 import leg_utils as leg
 import quad_model
 
-_HERE = pathlib.Path(__file__).resolve().parent   # module resource dir (sea_center.json)
+_HERE = pathlib.Path(__file__).resolve().parent  # module resource dir (sea_center.json)
 
 LEGS = ["FL", "FR", "RL", "RR"]
-N_SUB = 10                 # 50 Hz policy / 500 Hz PD
+N_SUB = 10  # 50 Hz policy / 500 Hz PD
 PD_KP, PD_KD = 300.0, 25.0
-KP_ST = 300.0              # firm stance-axis stiffness (verified-stable hold)
-KP_LD = 300.0              # firm load-axis stiffness (height)
-TAU1, TAU2 = 1.6, 1.0     # stance torque magnitude (Nm) on m1/m2 when blended
-DUTY = 0.80               # stance fraction per leg
+KP_ST = 300.0  # firm stance-axis stiffness (verified-stable hold)
+KP_LD = 300.0  # firm load-axis stiffness (height)
+TAU1, TAU2 = 1.6, 1.0  # stance torque magnitude (Nm) on m1/m2 when blended
+DUTY = 0.80  # stance fraction per leg
 G_FREQ_LO, G_FREQ_HI = 0.40, 0.80
 # Diagonal-trot phase: opposite legs swing together (FL+RR, then FR+RL).
 # The sequential 0/0.25/0.5/0.75 crawl winds the feet in a rotary pattern
@@ -50,9 +50,9 @@ _FORWARD_CRAWL = {"FL": 0.00, "FR": 0.25, "RL": 0.50, "RR": 0.75}
 _REVERSE_CRAWL = {"FL": 0.00, "FR": 0.75, "RL": 0.50, "RR": 0.25}
 TERM_Z_LO, TERM_Z_HI = 0.15, 0.35
 TERM_TILT = 0.6
-MAX_STEPS = 500            # 10 s episode
+MAX_STEPS = 500  # 10 s episode
 
-OBS_DIM = 57   # base 52 + 4 x per-leg hip-yaw joint position + world heading
+OBS_DIM = 57  # base 52 + 4 x per-leg hip-yaw joint position + world heading
 
 # Active hip-yaw straightening servo: the four symmetric sagittal legs give
 # no yaw authority, so tripod reactions compound into a steady turn; these
@@ -68,8 +68,10 @@ KP_YAW, KD_YAW = 60.0, 2.0
 # the policy learned world-yaw control to zero out this penalty.
 RYAW_A, RYAW_G = 1.0, 0.15
 
+
 def _wrap(a):
     return (a + np.pi) % (2 * np.pi) - np.pi
+
 
 # stance-torque blend ceiling for u0 (mapped by stride gate and clutch).
 # 0.30 is the position-PD-dominant regime (stable, backward-biased); raising
@@ -115,11 +117,11 @@ def _decode_action(u, stride_max=0.05, stride_min=0.0, gait_dir=1.0):
     # the +x propulsor exists, but its strong regime is not a stable attractor).
     lam_gate = (stride / stride_max) if stride_max > 0.0 else 0.0
     lam1 = float(np.clip(u[0] * _LAM1_SCALE, 0.0, 1.0) * lam_gate)
-    lam2 = 0.0          # load-axis stance torque drives the robot BACKWARD; disabled
+    lam2 = 0.0  # load-axis stance torque drives the robot BACKWARD; disabled
     lift = float(np.clip(0.02 + 0.06 * np.clip(u[3], 0, 1), 0.0, 0.08))
     depth = float(0.188 + np.clip(u[4], -1, 1) * 0.02)
-    fb = float(np.clip(u[5], -1, 1))      # +front -rear
-    lr = float(np.clip(u[6], -1, 1))      # +left -right
+    fb = float(np.clip(u[5], -1, 1))  # +front -rear
+    lr = float(np.clip(u[6], -1, 1))  # +left -right
     freq = float(G_FREQ_LO + np.clip(0.5 + u[7], 0, 1) * (G_FREQ_HI - G_FREQ_LO))
     scale = {}
     for t in LEGS:
@@ -130,8 +132,18 @@ def _decode_action(u, stride_max=0.05, stride_min=0.0, gait_dir=1.0):
 
 
 class QuadGaitEnv:
-    def __init__(self, seed=0, dr=True, stride_max=0.05, speed_target=0.15,
-                 yaw0=0.0, gait_dir=-1.0, stride_min=0.0, heading_cmd=0.0, turn=0.0):
+    def __init__(
+        self,
+        seed=0,
+        dr=True,
+        stride_max=0.05,
+        speed_target=0.15,
+        yaw0=0.0,
+        gait_dir=-1.0,
+        stride_min=0.0,
+        heading_cmd=0.0,
+        turn=0.0,
+    ):
         self._rng = np.random.default_rng(seed)
         self._dr_on = dr
         self.stride_max = float(stride_max)
@@ -156,38 +168,51 @@ class QuadGaitEnv:
         m = self.model
         self.trunk_id = m.body("trunk").id
         self.floor_id = int(m.geom("floor").id)
-        self.act = {t: (int(m.actuator(f"{t}m1").id),
-                        int(m.actuator(f"{t}m2").id)) for t in LEGS}
+        self.act = {t: (int(m.actuator(f"{t}m1").id), int(m.actuator(f"{t}m2").id)) for t in LEGS}
         self.act_yaw = {t: int(m.actuator(f"{t}yaw").id) for t in LEGS}
-        self.jnt_yaw = {t: (int(m.jnt(f"{t}yaw").qposadr[0]),
-                            int(m.jnt(f"{t}yaw").dofadr[0])) for t in LEGS}
-        self.tend_id = {spring: int(m.tendon(f"{t}{spring}").id)
-                        for t in LEGS for spring in ("spring1", "spring2")}
+        self.jnt_yaw = {
+            t: (int(m.jnt(f"{t}yaw").qposadr[0]), int(m.jnt(f"{t}yaw").dofadr[0])) for t in LEGS
+        }
+        self.tend_id = {
+            spring: int(m.tendon(f"{t}{spring}").id)
+            for t in LEGS
+            for spring in ("spring1", "spring2")
+        }
 
     # ---- reset -------------------------------------------------------------
     def _draw_dr(self):
         rng = self._rng
         if not self._dr_on:
-            return {"mu_gain": 1.0, "k_s": 1.0, "d_s": 1.0, "friction": 1.0, "mass": 1.0,
-                        "delay": 0, "act_noise": 0.0, "obs_noise": 0.0, "drop": 0.0,
-                        "tilt": np.zeros(2), "jitter": np.zeros(8)}
+            return {
+                "mu_gain": 1.0,
+                "k_s": 1.0,
+                "d_s": 1.0,
+                "friction": 1.0,
+                "mass": 1.0,
+                "delay": 0,
+                "act_noise": 0.0,
+                "obs_noise": 0.0,
+                "drop": 0.0,
+                "tilt": np.zeros(2),
+                "jitter": np.zeros(8),
+            }
         return {
-            "mu_gain": rng.uniform(0.9, 1.1),          # motor gain
-            "k_s": rng.uniform(0.8, 1.2),              # spring stiffness scale
-            "d_s": rng.uniform(0.2, 0.45),             # spring damping scale
-            "friction": rng.uniform(0.5, 1.3),         # floor friction
-            "mass": rng.uniform(0.9, 1.1),             # trunk mass scale
-            "delay": int(rng.integers(0, 3)),          # control delay (policy steps)
-            "act_noise": rng.uniform(0.0, 0.04),       # action noise
-            "obs_noise": rng.uniform(0.0, 0.02),       # obs noise (std, normalized)
-            "drop": rng.uniform(0.0, 0.03),            # extra initial height
+            "mu_gain": rng.uniform(0.9, 1.1),  # motor gain
+            "k_s": rng.uniform(0.8, 1.2),  # spring stiffness scale
+            "d_s": rng.uniform(0.2, 0.45),  # spring damping scale
+            "friction": rng.uniform(0.5, 1.3),  # floor friction
+            "mass": rng.uniform(0.9, 1.1),  # trunk mass scale
+            "delay": int(rng.integers(0, 3)),  # control delay (policy steps)
+            "act_noise": rng.uniform(0.0, 0.04),  # action noise
+            "obs_noise": rng.uniform(0.0, 0.02),  # obs noise (std, normalized)
+            "drop": rng.uniform(0.0, 0.03),  # extra initial height
             "tilt": rng.uniform(-0.05, 0.05, size=2),  # init roll/pitch
             "jitter": rng.uniform(-0.01, 0.01, size=8),
         }
 
     # SEA (kappa_s, d_s) DR center: measured bench pair (sec. 11 A1/B1 rows) via
     # sea_center.json, CAD 40.0/0.3 fallback. Never re-seed DR with CAD numbers.
-    _SEA_CENTER = None   # (k_c, d_c) tuple, resolved once on first use
+    _SEA_CENTER = None  # (k_c, d_c) tuple, resolved once on first use
 
     @classmethod
     def _sea_center(cls):
@@ -200,14 +225,14 @@ class QuadGaitEnv:
             if not (k > 0 and d > 0):
                 raise ValueError("sea_center.json needs positive k_s, d_s")
         except (OSError, KeyError, ValueError):
-            k, d = 40.0, 0.3              # CAD fallback
+            k, d = 40.0, 0.3  # CAD fallback
         cls._SEA_CENTER = (k, d)
         return cls._SEA_CENTER
 
     def _apply_dr(self):
         m, _d = self.model, self.data
         k = self._dr
-        k_c, d_c = self._sea_center()                 # measured SEA pair (sec. 11)
+        k_c, d_c = self._sea_center()  # measured SEA pair (sec. 11)
         m.geom_friction[self.floor_id, 0] = k["friction"]
         m.body(self.trunk_id).mass = 2.0 * k["mass"]
         for tid in self.tend_id.values():
@@ -222,20 +247,22 @@ class QuadGaitEnv:
         roll, pitch = self._dr.get("tilt", (0.0, 0.0))
         # compose the reset tilt (roll,pitch) with the fixed starting yaw:
         # q = q_yaw * q_tilt, applied in the air about the world z axis.
-        cr, sr, cp, sp = np.cos(roll/2), np.sin(roll/2), np.cos(pitch/2), np.sin(pitch/2)
-        cy, sy = np.cos(self._yaw0/2), np.sin(self._yaw0/2)
+        cr, sr, cp, sp = np.cos(roll / 2), np.sin(roll / 2), np.cos(pitch / 2), np.sin(pitch / 2)
+        cy, sy = np.cos(self._yaw0 / 2), np.sin(self._yaw0 / 2)
         # q_tilt = (cp*cr, -sp*sr, sp*cr, cp*sr) in (w,x,y,z)
-        w1, x1, y1, z1 = cp*cr, -sp*sr, sp*cr, cp*sr
+        w1, x1, y1, z1 = cp * cr, -sp * sr, sp * cr, cp * sr
         w2, _x2, y2, _z2 = cy, 0.0, 0.0, sy
-        qw = w2*w1 - y2*y1                             # z-axis only: x=z=0 parts
-        qx = w2*x1 + y2*z1
-        qy = w2*y1 - y2*x1
-        qz = w2*z1 + y2*w1
+        qw = w2 * w1 - y2 * y1  # z-axis only: x=z=0 parts
+        qx = w2 * x1 + y2 * z1
+        qy = w2 * y1 - y2 * x1
+        qz = w2 * z1 + y2 * w1
         d.qpos[0:3] = (0.0, 0.0, 0.226 + self._dr.get("drop", 0.0))
         d.qpos[3:7] = (qw, qx, qy, qz)
         for i, t in enumerate(LEGS):
             for joint in ("r1", "r2"):
-                d.qpos[int(m.jnt(f"{t}{joint}").qposadr[0])] = self._dr.get("jitter", np.zeros(8))[i*2+(joint == "r2")]
+                d.qpos[int(m.jnt(f"{t}{joint}").qposadr[0])] = self._dr.get("jitter", np.zeros(8))[
+                    i * 2 + (joint == "r2")
+                ]
         mujoco.mj_forward(m, d)
         self._steps = 0
         self._u_prev = np.zeros(8)
@@ -270,7 +297,7 @@ class QuadGaitEnv:
             o.append(d.sensor(f"{t}sp_yaw").data[0])
         o.append((_euler_from_quat(d.sensor("trunk_quat").data)[2] + np.pi) % (2 * np.pi) - np.pi)
         o += list(self._u_prev)
-        o += [np.sin(2*np.pi*self._clock), np.cos(2*np.pi*self._clock)]
+        o += [np.sin(2 * np.pi * self._clock), np.cos(2 * np.pi * self._clock)]
         obs = np.asarray(o, dtype=np.float64)
         n = self._dr.get("obs_noise", 0.0)
         if n > 0.0:
@@ -289,7 +316,8 @@ class QuadGaitEnv:
         if act_noise > 0.0:
             u = u + self._rng.normal(0.0, act_noise, size=8)
         lam1, lam2, stride, lift, depth, freq, tscale = _decode_action(
-            u, self.stride_max, self.stride_min)
+            u, self.stride_max, self.stride_min
+        )
         gd = self._gait_dir
 
         # per-leg foot targets for this policy step (diagonal trot).
@@ -304,11 +332,13 @@ class QuadGaitEnv:
         tgt = {}
         for t in LEGS:
             if self.turn > 0.0:
-                ph = (1.0 - np.clip(self.turn, 0, 1)) * CRAWL_PHASE[t] \
-                     + np.clip(self.turn, 0, 1) * _FORWARD_CRAWL[t]
+                ph = (1.0 - np.clip(self.turn, 0, 1)) * CRAWL_PHASE[t] + np.clip(
+                    self.turn, 0, 1
+                ) * _FORWARD_CRAWL[t]
             elif self.turn < 0.0:
-                ph = (1.0 - np.clip(-self.turn, 0, 1)) * CRAWL_PHASE[t] \
-                     + np.clip(-self.turn, 0, 1) * _REVERSE_CRAWL[t]
+                ph = (1.0 - np.clip(-self.turn, 0, 1)) * CRAWL_PHASE[t] + np.clip(
+                    -self.turn, 0, 1
+                ) * _REVERSE_CRAWL[t]
             else:
                 ph = CRAWL_PHASE[t]
             phi = (ph + freq * self._clock) % 1.0
@@ -338,10 +368,12 @@ class QuadGaitEnv:
                 qv1 = d.sensor(f"{t}sv_r1").data[0]
                 qv2 = d.sensor(f"{t}sv_r2").data[0]
                 if stance:
-                    d.ctrl[r1i] = (1 - lam1) * (-KP_ST * gain * (qr1 - th1) - PD_KD * qv1) \
-                                  + lam1 * TAU1 * ts * clutch
-                    d.ctrl[r2i] = (1 - lam2) * (-KP_LD * gain * (qr2 - th2) - PD_KD * qv2) \
-                                  + lam2 * TAU2
+                    d.ctrl[r1i] = (1 - lam1) * (
+                        -KP_ST * gain * (qr1 - th1) - PD_KD * qv1
+                    ) + lam1 * TAU1 * ts * clutch
+                    d.ctrl[r2i] = (1 - lam2) * (
+                        -KP_LD * gain * (qr2 - th2) - PD_KD * qv2
+                    ) + lam2 * TAU2
                 else:
                     d.ctrl[r1i] = -PD_KP * gain * (qr1 - th1) - PD_KD * qv1
                     d.ctrl[r2i] = -PD_KP * gain * (qr2 - th2) - PD_KD * qv2
@@ -383,9 +415,9 @@ class QuadGaitEnv:
         # pitch target centered nose-down (-0.07 rad): defines "forward" on
         # the otherwise fore/aft-symmetric body and pulls the cruised posture
         # toward the +x direction.
-        r_att = -0.50 * (roll*roll + (pitch - (-0.07))**2)
+        r_att = -0.50 * (roll * roll + (pitch - (-0.07)) ** 2)
         gx, gy = d.sensor("gyro").data[0], d.sensor("gyro").data[1]
-        r_w = -0.01 * (gx*gx + gy*gy)
+        r_w = -0.01 * (gx * gx + gy * gy)
         r_h = -0.05 * abs(z - 0.21)
         r_u = -0.005 * np.mean(np.abs(action))
         r_du = -0.02 * np.mean(np.abs(action - self._u_prev))
@@ -393,8 +425,13 @@ class QuadGaitEnv:
         self._u_prev = action.copy()
         self._u_hist = [*self._u_hist[1:], action.copy()]
 
-        terminated = (z < TERM_Z_LO or z > TERM_Z_HI or abs(roll) > TERM_TILT
-                      or abs(pitch) > TERM_TILT or not np.isfinite(reward))
+        terminated = (
+            z < TERM_Z_LO
+            or z > TERM_Z_HI
+            or abs(roll) > TERM_TILT
+            or abs(pitch) > TERM_TILT
+            or not np.isfinite(reward)
+        )
         if terminated:
             reward -= 25.0
         truncated = self._steps >= MAX_STEPS
@@ -411,15 +448,34 @@ class QuadGaitEnv:
 
 
 class VecQuadGait:
-    def __init__(self, n=8, seed=0, dr=True, stride_max=0.05, speed_target=0.15,
-                 yaw0=0.0, gait_dir=-1.0, stride_min=0.0, heading_cmd=0.0, turn=0.0):
+    def __init__(
+        self,
+        n=8,
+        seed=0,
+        dr=True,
+        stride_max=0.05,
+        speed_target=0.15,
+        yaw0=0.0,
+        gait_dir=-1.0,
+        stride_min=0.0,
+        heading_cmd=0.0,
+        turn=0.0,
+    ):
         self.stride_max, self.speed_target = stride_max, speed_target
-        self.envs = [QuadGaitEnv(seed=seed + i, dr=dr,
-                                 stride_max=stride_max, speed_target=speed_target,
-                                 yaw0=yaw0, gait_dir=gait_dir,
-                                 stride_min=stride_min, heading_cmd=heading_cmd,
-                                 turn=turn)
-                     for i in range(n)]
+        self.envs = [
+            QuadGaitEnv(
+                seed=seed + i,
+                dr=dr,
+                stride_max=stride_max,
+                speed_target=speed_target,
+                yaw0=yaw0,
+                gait_dir=gait_dir,
+                stride_min=stride_min,
+                heading_cmd=heading_cmd,
+                turn=turn,
+            )
+            for i in range(n)
+        ]
         self.n = n
         self.metrics = []
 
@@ -434,7 +490,10 @@ class VecQuadGait:
         reset_idxs = []
         for i, env in enumerate(self.envs):
             o, r, t, tu, info = env.step(actions[i])
-            obss.append(o); rews.append(r); terms.append(t); truns.append(tu)
+            obss.append(o)
+            rews.append(r)
+            terms.append(t)
+            truns.append(tu)
             if info:
                 self.metrics.append(info)
                 reset_idxs.append(i)
@@ -442,5 +501,9 @@ class VecQuadGait:
             ob = self.reset(reset_idxs)
             for i, idx in enumerate(reset_idxs):
                 obss[idx] = ob[i]
-        return (np.stack(obss), np.asarray(rews), np.asarray(terms, dtype=bool),
-                np.asarray(truns, dtype=bool))
+        return (
+            np.stack(obss),
+            np.asarray(rews),
+            np.asarray(terms, dtype=bool),
+            np.asarray(truns, dtype=bool),
+        )

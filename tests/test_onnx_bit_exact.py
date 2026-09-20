@@ -1,4 +1,4 @@
-﻿"""ONNX-vs-numpy bit-exactness gate (the deployment contract).
+"""ONNX-vs-numpy bit-exactness gate (the deployment contract).
 
 run_onnx.run(policy, tag) rebuilds the SAME seeded episode (VecQuadGait
 n=1, seed=99, 10 s) and calls `policy(obs)` every control step.  Replaying

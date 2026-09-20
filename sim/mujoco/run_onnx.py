@@ -48,14 +48,20 @@ def wrap_d(a):
 
 def yaw_deg(e, quat_sensor="trunk_quat"):
     q = e.data.sensor(quat_sensor).data
-    return np.degrees(np.arctan2(2 * (q[3] * q[0] + q[1] * q[2]),
-                                 1 - 2 * (q[1] ** 2 + q[2] ** 2)))
+    return np.degrees(np.arctan2(2 * (q[3] * q[0] + q[1] * q[2]), 1 - 2 * (q[1] ** 2 + q[2] ** 2)))
 
 
 def run(policy, tag):
-    v = gait_env.VecQuadGait(n=1, seed=99, dr=False, stride_max=0.05,
-                              speed_target=0.15, gait_dir=-1.0,
-                              stride_min=0.03, turn=-0.5)
+    v = gait_env.VecQuadGait(
+        n=1,
+        seed=99,
+        dr=False,
+        stride_max=0.05,
+        speed_target=0.15,
+        gait_dir=-1.0,
+        stride_min=0.03,
+        turn=-0.5,
+    )
     e = v.envs[0]
     obs = v.reset()
     x0 = e.data.xpos[e.trunk_id][0]
@@ -74,5 +80,4 @@ dx_n, dy_n, z_n = run(act_numpy, "numpy")
 
 print(f"[run_onnx] 10s  onnx  dx {dx_o:+.3f} m  dy {dy_o:+7.1f} deg  z {z_o:.3f}")
 print(f"[run_onnx] 10s numpy  dx {dx_n:+.3f} m  dy {dy_n:+7.1f} deg  z {z_n:.3f}")
-print(f"[run_onnx] max |dx_diff| = {abs(dx_o - dx_n):.2e}  "
-      f"|dy_diff| = {abs(dy_o - dy_n):.2e}")
+print(f"[run_onnx] max |dx_diff| = {abs(dx_o - dx_n):.2e}  |dy_diff| = {abs(dy_o - dy_n):.2e}")

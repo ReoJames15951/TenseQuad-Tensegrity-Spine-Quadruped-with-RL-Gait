@@ -42,12 +42,12 @@ def _extract_subtree(xml: str, body_name: str) -> str:
     marker = f'<body name="{body_name}"'
     idx = xml.index(marker)
     # find the opening tag's closing >
-    depth_close = xml.index('>', idx) + 1
+    depth_close = xml.index(">", idx) + 1
     depth = 1
     pos = depth_close
     while depth > 0:
-        open_pos = xml.find('<body ', pos)
-        close_pos = xml.find('</body>', pos)
+        open_pos = xml.find("<body ", pos)
+        close_pos = xml.find("</body>", pos)
         if close_pos == -1:
             raise RuntimeError("Unbalanced body tags")
         if open_pos != -1 and open_pos < close_pos:
@@ -56,7 +56,7 @@ def _extract_subtree(xml: str, body_name: str) -> str:
         else:
             depth -= 1
             if depth == 0:
-                return xml[idx:close_pos + len('</body>')]
+                return xml[idx : close_pos + len("</body>")]
             pos = close_pos + 7
     raise RuntimeError("Unbalanced body tags")
 
@@ -74,8 +74,9 @@ def _rename(xml: str, prefix: str) -> str:
     return xml
 
 
-def _tendon_xml(prefix: str, stiffness: float = 40.0, damping: float = 0.3,
-                knee_dir: float = 1.0) -> str:
+def _tendon_xml(
+    prefix: str, stiffness: float = 40.0, damping: float = 0.3, knee_dir: float = 1.0
+) -> str:
     """Fixed SEA tendon per leg.
 
     spring1 couples the knee rotor r1 to its link j1: tension = k*(r1-j1),
@@ -88,10 +89,10 @@ def _tendon_xml(prefix: str, stiffness: float = 40.0, damping: float = 0.3,
     return (
         f'<fixed name="{prefix}spring1" stiffness="{stiffness}" damping="{damping}">'
         f'<joint joint="{prefix}r1" coef="1"/><joint joint="{prefix}j1" coef="{j1c}"/>'
-        f'</fixed>\n'
+        f"</fixed>\n"
         f'<fixed name="{prefix}spring2" stiffness="{stiffness}" damping="{damping}">'
         f'<joint joint="{prefix}r2" coef="1"/><joint joint="{prefix}j2" coef="{j2c}"/>'
-        f'</fixed>\n'
+        f"</fixed>\n"
     )
 
 
@@ -150,21 +151,21 @@ def build_quad(k_s: float = 40.0, d_s: float = 0.3) -> tuple:
     # Trunk mass and inertia (approx solid box 0.24 x 0.17 x 0.06 m)
     trunk_mass = 2.0
     dx, dy, dz = 0.12, 0.085, 0.03
-    Ixx = (1.0/12.0) * trunk_mass * (dy*dy + dz*dz)
-    Iyy = (1.0/12.0) * trunk_mass * (dx*dx + dz*dz)
-    Izz = (1.0/12.0) * trunk_mass * (dx*dx + dy*dy)
+    Ixx = (1.0 / 12.0) * trunk_mass * (dy * dy + dz * dz)
+    Iyy = (1.0 / 12.0) * trunk_mass * (dx * dx + dz * dz)
+    Izz = (1.0 / 12.0) * trunk_mass * (dx * dx + dy * dy)
 
     xml = '<mujoco model="quad">\n'
     xml += '  <compiler angle="radian" autolimits="false"/>\n'
     xml += '  <option timestep="0.002" iterations="40" tolerance="1e-10"\n'
     xml += '          cone="elliptic" integrator="Euler" gravity="0 0 -9.81"/>\n'
-    xml += '  <default>\n'
+    xml += "  <default>\n"
     xml += '    <geom type="box" condim="3"/>\n'
     xml += '    <joint limited="true" damping="0.02"/>\n'
-    xml += '  </default>\n'
+    xml += "  </default>\n"
 
     # Worldbody: floor + trunk
-    xml += '  <worldbody>\n'
+    xml += "  <worldbody>\n"
     xml += '    <geom name="floor" type="plane" size="4 4 1" pos="0 0 0" condim="3"/>\n'
     xml += '    <body name="trunk" pos="0 0 0.226">\n'
     xml += '      <freejoint name="root"/>\n'
@@ -179,50 +180,49 @@ def build_quad(k_s: float = 40.0, d_s: float = 0.3) -> tuple:
         hip = _rename(hip_xml, tag)
         # hip sits at the origin of its yaw body; the yaw body carries the
         # mount position on the trunk and a z-axis (vertical) revolute joint.
-        hip = re.sub(r'<body name="(.*?)" pos="[^"]*"',
-                     '<body name="\\1" pos="0 0 0"',
-                     hip, count=1)
+        hip = re.sub(
+            r'<body name="(.*?)" pos="[^"]*"', '<body name="\\1" pos="0 0 0"', hip, count=1
+        )
         xml += f'      <body name="{tag}hip_yaw" pos="{pos[0]:+.4f} {pos[1]:+.4f} {pos[2]:+.4f}">\n'
         xml += f'        <joint name="{tag}yaw" axis="0 0 1" range="-0.8 0.8" damping="0.05" armature="0.002"/>\n'
         xml += '        <inertial pos="0 0 0" mass="0.03" diaginertia="0.0002 0.0002 0.0002"/>\n'
         xml += f'        <geom name="{tag}yaw_geom" type="box" size="0.012 0.011 0.014" '
         xml += f'pos="{0.0:+.4f} {0.0:+.4f} {0.0:+.4f}" mass="0.02" contype="0" conaffinity="0"/>\n'
         xml += hip + "\n"
-        xml += '      </body>\n'
+        xml += "      </body>\n"
 
-    xml += '    </body>\n'   # close trunk
-    xml += '  </worldbody>\n'
+    xml += "    </body>\n"  # close trunk
+    xml += "  </worldbody>\n"
 
     # Tendons
-    xml += '  <tendon>\n'
+    xml += "  <tendon>\n"
     for tag in _LEG_MOUNTS:
-        xml += _tendon_xml(tag, stiffness=k_s, damping=d_s,
-                           knee_dir=KNEE_SPRING_DIR)
-    xml += '  </tendon>\n'
+        xml += _tendon_xml(tag, stiffness=k_s, damping=d_s, knee_dir=KNEE_SPRING_DIR)
+    xml += "  </tendon>\n"
 
     # Actuators
-    xml += '  <actuator>\n'
+    xml += "  <actuator>\n"
     for tag in _LEG_MOUNTS:
         xml += _actuator_xml(tag)
-    xml += '  </actuator>\n'
+    xml += "  </actuator>\n"
 
     # Sensors (trunk IMU + per-leg)
-    xml += '  <sensor>\n'
+    xml += "  <sensor>\n"
     xml += '    <framequat name="trunk_quat" objtype="body" objname="trunk"/>\n'
     xml += '    <framelinvel name="trunk_lvel" objtype="body" objname="trunk"/>\n'
     xml += '    <gyro name="gyro" site="s_trunk"/>\n'
     xml += '    <accelerometer name="acc" site="s_trunk"/>\n'
     for tag in _LEG_MOUNTS:
         xml += _sensor_xml(tag)
-    xml += '  </sensor>\n'
+    xml += "  </sensor>\n"
 
     # Equalities (weld closure per leg)
-    xml += '  <equality>\n'
+    xml += "  <equality>\n"
     for tag in _LEG_MOUNTS:
         xml += _equality_xml(tag)
-    xml += '  </equality>\n'
+    xml += "  </equality>\n"
 
-    xml += '</mujoco>\n'
+    xml += "</mujoco>\n"
 
     model = mujoco.MjModel.from_xml_string(xml)
     data = mujoco.MjData(model)

@@ -22,20 +22,20 @@ import leg_utils as leg
 HERE = Path(__file__).parent
 
 
-def build(k_s: float = 40.0, d_s: float = 0.3, gantry: bool = True,
-          weld_ms: float = 1.0):
+def build(k_s: float = 40.0, d_s: float = 0.3, gantry: bool = True, weld_ms: float = 1.0):
     """Compile the model with spring stiffness/damping override and optional
     gantry root (z-slider) so the single leg performs a clean vertical bounce
     instead of tipping over. weld_ms sets the weld equality timeconstant."""
     xml = (HERE / "fivebar_leg.xml").read_text(encoding="utf-8")
     xml = xml.replace('stiffness="40"', f'stiffness="{k_s}"')
     xml = xml.replace('damping="0.3"', f'damping="{d_s}"')
-    xml = xml.replace('solref="0.001 1"', f'solref="{weld_ms*1e-3:g} 1"')
+    xml = xml.replace('solref="0.001 1"', f'solref="{weld_ms * 1e-3:g} 1"')
     if gantry:
         xml = xml.replace(
             '<freejoint name="root"/>',
             '<joint name="root" type="slide" axis="0 0 1" limited="true" '
-            'range="-0.15 0.5" damping="0.1"/>')
+            'range="-0.15 0.5" damping="0.1"/>',
+        )
     return mujoco.MjModel.from_xml_string(xml)
 
 
@@ -50,7 +50,7 @@ def _setup(model, data):
 
 # Elbow closure is baked into the coupler body frames (euler y = -/+0.2761),
 # so FK joint angles must be written with these offsets in the model.
-JC1_BAKE = 0.2761   # add to FK joint angle for jc1
+JC1_BAKE = 0.2761  # add to FK joint angle for jc1
 JC2_BAKE = -0.2761  # add to FK joint angle for jc2
 
 
@@ -90,17 +90,28 @@ def mode_workspace(n: int = 61):
             hip = data.body("hip").xpos
             fx, fz = data.site("s_foot").xpos[0] - hip[0], data.site("s_foot").xpos[2] - hip[2]
             errs.append(np.hypot(fx - f_fk[0], fz - f_fk[1]))
-            tip_gap.append(np.linalg.norm(data.xpos[model.body("tipC1").id]
-                                          - data.xpos[model.body("tipC2").id]))
+            tip_gap.append(
+                np.linalg.norm(
+                    data.xpos[model.body("tipC1").id] - data.xpos[model.body("tipC2").id]
+                )
+            )
     errs = np.array(errs)
     tip_gap = np.array(tip_gap)
     print("\n== FK vs MuJoCo loop closure ==")
     print(f"  samples      {errs.size}")
-    print(f"  max foot err {errs.max()*1e3:.3f} mm   mean {errs.mean()*1e3:.3f} mm")
-    print(f"  weld tip gap {tip_gap.max()*1e3:.3f} mm (constraint slack at fk/forward)")
+    print(f"  max foot err {errs.max() * 1e3:.3f} mm   mean {errs.mean() * 1e3:.3f} mm")
+    print(f"  weld tip gap {tip_gap.max() * 1e3:.3f} mm (constraint slack at fk/forward)")
 
 
-def mode_bounce(T: float, k_s: float, d_s: float, render: bool, drop: float, bend: float = 0.0, weld_ms: float = 1.0):
+def mode_bounce(
+    T: float,
+    k_s: float,
+    d_s: float,
+    render: bool,
+    drop: float,
+    bend: float = 0.0,
+    weld_ms: float = 1.0,
+):
     model = build(k_s=k_s, d_s=d_s, gantry=True, weld_ms=weld_ms)
     data = mujoco.MjData(model)
     _, _, _, _ = _setup(model, data)
@@ -121,13 +132,13 @@ def mode_bounce(T: float, k_s: float, d_s: float, render: bool, drop: float, ben
     _, _, _, jc1, jc2 = leg.fk_full(bend, bend)
     data.qpos[int(model.jnt("jc1").qposadr[0])] = jc1 + JC1_BAKE
     data.qpos[int(model.jnt("jc2").qposadr[0])] = jc2 + JC2_BAKE
-    Kp, Kd = 300.0, 25.0          # rotor hold PD around +/-bend setpoint
+    Kp, Kd = 300.0, 25.0  # rotor hold PD around +/-bend setpoint
     dt = model.opt.timestep
     n = int(T / dt)
 
-    data.qpos[0] += drop          # extra drop height above the XML clearance
+    data.qpos[0] += drop  # extra drop height above the XML clearance
     mujoco.mj_forward(model, data)
-    z0 = data.xpos[base][2]       # world base height at drop start
+    z0 = data.xpos[base][2]  # world base height at drop start
 
     viewer = mujoco.viewer.launch_passive(model, data) if render else None
 
@@ -171,18 +182,20 @@ def mode_bounce(T: float, k_s: float, d_s: float, render: bool, drop: float, ben
     periods = np.diff(np.asarray(mins)) * dt if len(mins) > 2 else np.array([])
     bounce_f = 1.0 / periods.mean() if periods.size else np.nan
 
-    rest = z[len(z) // 3:]
+    rest = z[len(z) // 3 :]
     droop = rest.mean()
     z0 = z[0]
 
-    print(f"== SEA bounce (k_s={k_s:g} N-m/rad, bend {bend:+.2f} rad, base {model.opt.timestep*1e3:g} ms) ==")
+    print(
+        f"== SEA bounce (k_s={k_s:g} N-m/rad, bend {bend:+.2f} rad, base {model.opt.timestep * 1e3:g} ms) =="
+    )
     print(f"  peak spring tension     {abs(spring).max():6.2f} N")
     print(f"  mean link deflection    {np.degrees(abs(j_angles).mean()):6.2f} deg")
     print(f"  rotor hold error (max)  {np.degrees(hold_err.max()):6.2f} deg")
     print(f"  min base height         {z.min():6.3f} m")
-    print(f"  settled base height     {droop:6.3f} m   (sag {(z0-droop)*1e3:6.1f} mm)")
+    print(f"  settled base height     {droop:6.3f} m   (sag {(z0 - droop) * 1e3:6.1f} mm)")
     print(f"  bounce frequency        {bounce_f:6.2f} Hz   (est. from stance minima)")
-    print(f"  weld loop error (max)   {weld_err.max()*1e6:8.1f} um")
+    print(f"  weld loop error (max)   {weld_err.max() * 1e6:8.1f} um")
 
 
 def main():
@@ -193,7 +206,9 @@ def main():
     p.add_argument("--k", type=float, default=40.0, help="spring stiffness N-m/rad")
     p.add_argument("--d", type=float, default=0.3, help="spring damping N-m-s/rad")
     p.add_argument("--drop", type=float, default=0.0, help="extra drop height (m)")
-    p.add_argument("--bend", type=float, default=0.3, help="rotor-hold setpoint (rad), bows the leg")
+    p.add_argument(
+        "--bend", type=float, default=0.3, help="rotor-hold setpoint (rad), bows the leg"
+    )
     p.add_argument("--weld-ms", type=float, default=1.0, help="weld equality timeconstant (ms)")
     p.add_argument("--render", action="store_true")
     a = p.parse_args()

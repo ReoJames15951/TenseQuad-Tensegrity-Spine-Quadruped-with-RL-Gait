@@ -38,14 +38,19 @@ def export(checkpoint: str, out: str):
     nodes = []
 
     def const(name, arr):
-        nodes.append(helper.make_node(
-            "Constant", [], [name],
-            value=numpy_helper.from_array(np.asarray(arr, dtype=np.float32))))
+        nodes.append(
+            helper.make_node(
+                "Constant",
+                [],
+                [name],
+                value=numpy_helper.from_array(np.asarray(arr, dtype=np.float32)),
+            )
+        )
         return name
 
     # obs standardization: (x - mean) / sqrt(var + 1e-4) -> Sub + Mul
     mean_name = const("obs_mean", agent.obs_mean)
-    const("obs_var", agent.obs_var + 1e-4)   # already-var + eps
+    const("obs_var", agent.obs_var + 1e-4)  # already-var + eps
     scale = 1.0 / np.sqrt(agent.obs_var + 1e-4)
     scale_name = const("obs_scale", scale)
     const("one", np.float32(1.0))
@@ -62,20 +67,21 @@ def export(checkpoint: str, out: str):
     # let shape-inference confirm the 57/64/8 chain.
     h_in = "xN"
     for k in range(2):
-        wk = const(f"w{k}", p[f"w{k}"])                # (in, out), no transpose
+        wk = const(f"w{k}", p[f"w{k}"])  # (in, out), no transpose
         bk = const(f"b{k}", p[f"b{k}"])
         gemm = helper.make_node("Gemm", [h_in, wk, bk], [f"h{k}"], alpha=1.0, beta=1.0)
         nn = helper.make_node("Tanh", [f"h{k}"], [f"y{k}"])
         nodes.append(gemm)
         nodes.append(nn)
         h_in = f"y{k}"
-    w2 = const("w2", p["w2"])                           # (64, 8)
+    w2 = const("w2", p["w2"])  # (64, 8)
     b2 = const("b2", p["b2"])
     gemm = helper.make_node("Gemm", [h_in, w2, b2], ["action"], alpha=1.0, beta=1.0)
     nodes.append(gemm)
 
     graph = helper.make_graph(
-        nodes, "quad_ppo",
+        nodes,
+        "quad_ppo",
         [helper.make_tensor_value_info("obs", TensorProto.FLOAT, [None, obs_dim])],
         [helper.make_tensor_value_info("action", TensorProto.FLOAT, [None, act_dim])],
     )
@@ -95,8 +101,10 @@ def export(checkpoint: str, out: str):
     assert err < 1e-4, "ONNX export diverges from numpy policy"
 
     onnx.save(model, out)
-    print(f"[onnx] wrote {out} (ir_version={model.ir_version}, "
-          f"opsets={[(o.domain, o.version) for o in model.opset_import]})")
+    print(
+        f"[onnx] wrote {out} (ir_version={model.ir_version}, "
+        f"opsets={[(o.domain, o.version) for o in model.opset_import]})"
+    )
 
 
 if __name__ == "__main__":

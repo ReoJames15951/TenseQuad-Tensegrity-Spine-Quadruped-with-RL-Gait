@@ -34,7 +34,7 @@ def _mlp_forward(p, x, keep=False):
     for k in range(n - 1):
         h = np.tanh(h @ p[f"w{k}"] + p[f"b{k}"])
         hs.append(h)
-    out = h @ p[f"w{n-1}"] + p[f"b{n-1}"]
+    out = h @ p[f"w{n - 1}"] + p[f"b{n - 1}"]
     return (out, hs) if keep else out
 
 
@@ -45,20 +45,33 @@ def _mlp_backward(p, x, hs, d_out):
     # input layer; output layer is linear so d_h_last = d_out.
     d_h = d_out
     g = {}
-    g[f"w{n-1}"] = hs[-1].T @ d_h
-    g[f"b{n-1}"] = d_h.sum(0)
+    g[f"w{n - 1}"] = hs[-1].T @ d_h
+    g[f"b{n - 1}"] = d_h.sum(0)
     for k in range(n - 2, -1, -1):
-        d_h = d_h @ p[f"w{k+1}"].T
-        d_h = d_h * (1 - hs[k + 1] * hs[k + 1])   # d(tanh)
+        d_h = d_h @ p[f"w{k + 1}"].T
+        d_h = d_h * (1 - hs[k + 1] * hs[k + 1])  # d(tanh)
         g[f"w{k}"] = hs[k].T @ d_h
         g[f"b{k}"] = d_h.sum(0)
     return g
 
 
 class Agent:
-    def __init__(self, obs_dim, act_dim, hidden=64, lr=3e-4, seed=0,
-                 gamma=0.99, lam=0.95, clip=0.2, ent_coef=1e-2, vf_coef=0.5,
-                 epochs=4, minibatch=64, max_grad_norm=0.5):
+    def __init__(
+        self,
+        obs_dim,
+        act_dim,
+        hidden=64,
+        lr=3e-4,
+        seed=0,
+        gamma=0.99,
+        lam=0.95,
+        clip=0.2,
+        ent_coef=1e-2,
+        vf_coef=0.5,
+        epochs=4,
+        minibatch=64,
+        max_grad_norm=0.5,
+    ):
         self.obs_dim, self.act_dim = obs_dim, act_dim
         self.gamma, self.lam, self.clip = gamma, lam, clip
         self.ent_coef, self.vf_coef = ent_coef, vf_coef
@@ -70,8 +83,10 @@ class Agent:
         self.log_std = np.full(act_dim, -0.7)
 
         self.lr = lr
-        self._adam = {n: {"m": np.zeros_like(v), "v": np.zeros_like(v), "t": 0}
-                      for n, v in self._params().items()}
+        self._adam = {
+            n: {"m": np.zeros_like(v), "v": np.zeros_like(v), "t": 0}
+            for n, v in self._params().items()
+        }
 
         self.obs_mean = np.zeros(obs_dim)
         self.obs_var = np.ones(obs_dim)
@@ -126,7 +141,7 @@ class Agent:
         advs = np.zeros((H, N))
         gae_t = np.zeros(N)
         for t in reversed(range(H)):
-            nv = np.where(truncs[t], v_last, 0.0)   # no bootstrap on crash
+            nv = np.where(truncs[t], v_last, 0.0)  # no bootstrap on crash
             delta = rewards[t] + self.gamma * nv - values[t]
             gae_t = delta + self.gamma * self.lam * np.where(dones[t], 0.0, gae_t)
             advs[t] = gae_t
@@ -135,8 +150,7 @@ class Agent:
 
     # ---- training -----------------------------------------------------------
     def _adam_update(self):
-        grad_norm = np.sqrt(sum(
-            np.sum(np.asarray(g) ** 2) for g in self._grad.values()))
+        grad_norm = np.sqrt(sum(np.sum(np.asarray(g) ** 2) for g in self._grad.values()))
         scale = min(1.0, self.max_grad_norm / (grad_norm + 1e-8))
         for name, g in self._grad.items():
             g *= scale
@@ -146,7 +160,7 @@ class Agent:
             st["v"] = 0.999 * st["v"] + 0.001 * g * g
             mhat = st["m"] / (1 - 0.9 ** st["t"])
             vhat = st["v"] / (1 - 0.999 ** st["t"])
-            p = self._params()[name]          # live array; updates the real net
+            p = self._params()[name]  # live array; updates the real net
             p -= self.lr * mhat / (np.sqrt(vhat) + 1e-8)
 
     def train(self, obs, acts, rets, advs, old_logp):
@@ -162,7 +176,7 @@ class Agent:
         for _ in range(self.epochs):
             idx = rng.permutation(n)
             for s in range(0, n, self.minibatch):
-                b = idx[s:s + self.minibatch]
+                b = idx[s : s + self.minibatch]
                 self._update_step(x[b], acts[b], rets[b], advs[b], old_logp[b])
 
     def _update_step(self, xb, ab, rb, advb, oldb):
@@ -179,26 +193,24 @@ class Agent:
         # clipped surrogate objective (loss = -surr.mean())
         clipped = np.clip(ratio, 1 - self.clip, 1 + self.clip)
         surr = np.minimum(ratio * advb, clipped * advb)
-        mask = ratio * advb <= clipped * advb          # active branch (unclipped)
+        mask = ratio * advb <= clipped * advb  # active branch (unclipped)
         pol_loss = -surr.mean()
 
         # dL/d logp_i = -adv_i * ratio_i * mask_i ;  dlogp/dmu and dlogp/dlog_std
         dL_dlogp = -advb * ratio * mask
         d_logp_d_mu = (ab - mu) / sigma2
-        d_out = dL_dlogp[:, None] * d_logp_d_mu            # grad wrt mu (linear out)
+        d_out = dL_dlogp[:, None] * d_logp_d_mu  # grad wrt mu (linear out)
         for k, v in _mlp_backward(self.policy, xb, hs, d_out).items():
             g[f"pi_{k}"] = v
         # log_std gradient: surrogate part + entropy bonus (-ent_coef*H)
-        d_surr_d_ls = np.sum(
-            dL_dlogp[:, None] * ((ab - mu) ** 2 / sigma2 - 1.0), axis=0) / mb
+        d_surr_d_ls = np.sum(dL_dlogp[:, None] * ((ab - mu) ** 2 / sigma2 - 1.0), axis=0) / mb
         g["log_std"] = d_surr_d_ls - self.ent_coef
 
         # ---- value forward + loss ----
         vpred, vhs = _mlp_forward(self.value, xb, keep=True)
         vd = vpred[:, 0] - rb
-        v_loss = 0.5 * (vd ** 2).mean()
-        for k, v in _mlp_backward(self.value, xb, vhs,
-                                  (self.vf_coef * vd)[:, None]).items():
+        v_loss = 0.5 * (vd**2).mean()
+        for k, v in _mlp_backward(self.value, xb, vhs, (self.vf_coef * vd)[:, None]).items():
             g[f"vf_{k}"] = v
 
         self._grad = g
